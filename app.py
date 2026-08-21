@@ -131,7 +131,10 @@ def logout_button():
         st.rerun()
 
 def user_page():
-    st.info("📢 **안내:** 매월 고정 연습실 사용 예약은 010-2989-0601로 문의 바랍니다.\n\n⚠️ **개인 당 1일 최대 연습실 예약 가능 시간은 2시간으로 한정됩니다.**")
+    # 파란색 안내 박스
+    st.info("📢 **안내:** 매월 고정 연습실 사용 예약은 010-2989-0601로 문의 바랍니다.")
+    # 노란색 경고 박스 (예약 시간 제한 강조)
+    st.warning("⚠️ **개인 당 1일 최대 연습실 예약 가능 시간은 2시간으로 한정됩니다.**")
     st.write(f"환영합니다, **{st.session_state['current_user']}**님!")
     selected_date = st.date_input("예약하실 날짜를 선택하세요", datetime.date.today())
     st.markdown("---")
