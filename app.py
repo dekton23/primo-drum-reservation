@@ -91,7 +91,7 @@ load_data_from_db()
 
 # --- 화면 로직 ---
 def login_screen():
-    st.title("🥁프리모음악학원 드럼연습실 예약시스템")
+    st.title("🥁프리모 드럼연습실 예약시스템")
     tab1, tab2 = st.tabs(["👨‍🎓 수강생 로그인", "👑 관리자 로그인"])
     with tab1:
         st.subheader("수강생 로그인")
@@ -347,7 +347,7 @@ def main():
     if not st.session_state["logged_in"]: login_screen()
     else:
         col1, col2 = st.columns([4, 1])
-        with col1: st.title("🥁프리모음악학원 드럼연습실 예약시스템")
+        with col1: st.title("🥁프리모 드럼연습실 예약시스템")
         with col2:
             st.write("") 
             logout_button()
