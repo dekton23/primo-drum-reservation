@@ -156,8 +156,10 @@ def user_page():
             schedule_data.append({"시간": display_time, "상태": "🟢 예약가능"})
 
     with col1:
-        st.subheader(f"📅 {selected_date} 현황표")
-        st.dataframe(schedule_data, use_container_width=True, hide_index=True, height=500)
+        # 제목 대신 '접었다 펼 수 있는' 상자(expander)를 생성합니다.
+        with st.expander(f"📅 {selected_date} 전체 예약 현황표 열어보기", expanded=False):
+            # 스크롤 트랩을 유발하는 dataframe 대신 깔끔한 table을 사용합니다.
+            st.table(schedule_data)
         
     with col2:
         st.subheader("🕒 예약하기")
