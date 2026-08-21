@@ -8,7 +8,6 @@ from google.oauth2.service_account import Credentials
 # --- 1. 구글 시트 연동 설정 ---
 @st.cache_resource
 def init_gsheets():
-    # Streamlit Secrets에서 JSON 신분증과 시트 주소를 가져옵니다.
     skey = json.loads(st.secrets["gcp_json"])
     sheet_url = st.secrets["sheet_url"]
     
@@ -24,23 +23,37 @@ doc = init_gsheets()
 ws_users = doc.worksheet("users")
 ws_res = doc.worksheet("reservations")
 
-# 앱 실행 시 구글 시트에서 최신 데이터 불러오기
-def load_data_from_db():
-    users_records = ws_users.get_all_records()
-    st.session_state["users"] = {str(r["name"]): str(r["password"]) for r in users_records}
-    
-    res_records = ws_res.get_all_records()
-    st.session_state["reservations"] = [
-        {
-            "id": str(r["id"]),
-            "date": str(r["date"]),
-            "start_time": str(r["start_time"]),
-            "end_time": str(r["end_time"]),
-            "user_id": str(r["user_id"])
-        } for r in res_records
-    ]
+# --- 초기 세션 설정 ---
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+if "is_admin" not in st.session_state:
+    st.session_state["is_admin"] = False
+if "current_user" not in st.session_state:
+    st.session_state["current_user"] = ""
+if "lesson_dates" not in st.session_state:
+    st.session_state["lesson_dates"] = []
+# 구글 시트 API 초과 방지를 위한 플래그 추가
+if "data_loaded" not in st.session_state:
+    st.session_state["data_loaded"] = False
 
-# 시트 전체 덮어쓰기 (다중 삭제 시 사용)
+# 데이터 불러오기 (최초 1회 또는 예약 변경 시에만 작동)
+def load_data_from_db():
+    if not st.session_state["data_loaded"]:
+        users_records = ws_users.get_all_records()
+        st.session_state["users"] = {str(r["name"]): str(r["password"]) for r in users_records}
+        
+        res_records = ws_res.get_all_records()
+        st.session_state["reservations"] = [
+            {
+                "id": str(r["id"]),
+                "date": str(r["date"]),
+                "start_time": str(r["start_time"]),
+                "end_time": str(r["end_time"]),
+                "user_id": str(r["user_id"])
+            } for r in res_records
+        ]
+        st.session_state["data_loaded"] = True
+
 def rewrite_res_sheet():
     ws_res.clear()
     headers = ["id", "date", "start_time", "end_time", "user_id"]
@@ -48,14 +61,6 @@ def rewrite_res_sheet():
     for r in st.session_state["reservations"]:
         data.append([r["id"], r["date"], r["start_time"], r["end_time"], r["user_id"]])
     ws_res.update(values=data, range_name="A1")
-
-def rewrite_users_sheet():
-    ws_users.clear()
-    headers = ["name", "password"]
-    data = [headers]
-    for name, pwd in st.session_state["users"].items():
-        data.append([name, pwd])
-    ws_users.update(values=data, range_name="A1")
 
 # --- 공통 시간 데이터 및 계산 ---
 def get_all_time_slots():
@@ -81,17 +86,7 @@ def get_duration_minutes(start_t, end_t):
         h2, m2 = map(int, end_t.split(":"))
     return (h2 * 60 + m2) - (h1 * 60 + m1)
 
-# --- 초기 세션 설정 ---
-if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
-if "is_admin" not in st.session_state:
-    st.session_state["is_admin"] = False
-if "current_user" not in st.session_state:
-    st.session_state["current_user"] = ""
-if "lesson_dates" not in st.session_state:
-    st.session_state["lesson_dates"] = []
-
-# 매번 화면이 새로고침될 때마다 DB 동기화
+# 앱이 실행될 때 데이터 동기화 시도 (조건부)
 load_data_from_db()
 
 # --- 화면 로직 ---
@@ -182,6 +177,7 @@ def user_page():
             else:
                 res_id = str(uuid.uuid4())
                 ws_res.append_row([res_id, str(selected_date), start_time, end_time, st.session_state["current_user"]])
+                st.session_state["data_loaded"] = False # 강제 동기화 지시
                 st.success("예약이 성공적으로 완료되었습니다!")
                 st.rerun()
 
@@ -199,8 +195,8 @@ def user_page():
                 try:
                     cell = ws_res.find(r["id"], in_column=1)
                     if cell: ws_res.delete_rows(cell.row)
-                except:
-                    pass
+                except: pass
+                st.session_state["data_loaded"] = False
                 st.rerun()
 
 def admin_page():
@@ -221,6 +217,7 @@ def admin_page():
                     st.error("이미 존재하는 이름입니다. 다른 이름(예: 홍길동A)으로 등록해 주세요.")
                 else:
                     ws_users.append_row([new_user_name, new_user_pwd])
+                    st.session_state["data_loaded"] = False
                     st.success(f"'{new_user_name}' 수강생이 등록되었습니다.")
                     st.rerun()
             else:
@@ -237,6 +234,7 @@ def admin_page():
                     cell = ws_users.find(name, in_column=1)
                     if cell: ws_users.delete_rows(cell.row)
                 except: pass
+                st.session_state["data_loaded"] = False
                 st.rerun()
 
     st.markdown("---")
@@ -301,6 +299,7 @@ def admin_page():
                     added_count += 1
             
             if added_count > 0:
+                st.session_state["data_loaded"] = False
                 st.success(f"성공적으로 {added_count}개의 {schedule_type}을(를) 마감 처리했습니다.")
                 if is_lesson: st.session_state["lesson_dates"] = []
                 st.rerun()
@@ -317,7 +316,8 @@ def admin_page():
             
             if st.button("해당 월 고정/레슨 일정 일괄 삭제"):
                 st.session_state["reservations"] = [r for r in st.session_state["reservations"] if not (r["user_id"] in ["관리자 고정일정", "레슨 일정"] and r["date"].startswith(del_month))]
-                rewrite_res_sheet() # DB 덮어쓰기
+                rewrite_res_sheet() 
+                st.session_state["data_loaded"] = False
                 st.success(f"{del_month}월의 모든 고정 및 레슨 일정이 삭제되었습니다.")
                 st.rerun()
             
@@ -341,6 +341,7 @@ def admin_page():
                     cell = ws_res.find(r["id"], in_column=1)
                     if cell: ws_res.delete_rows(cell.row)
                 except: pass
+                st.session_state["data_loaded"] = False
                 st.rerun()
 
 def main():
