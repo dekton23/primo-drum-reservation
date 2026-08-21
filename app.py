@@ -34,7 +34,10 @@ if "lesson_dates" not in st.session_state:
     st.session_state["lesson_dates"] = []
 # 구글 시트 API 초과 방지를 위한 플래그 추가
 if "data_loaded" not in st.session_state:
-    st.session_state["data_loaded"] = False
+    st.session_state["data_loaded"] = False 
+# 표가 접혀있는 상태를 기본값
+if "table_expanded" not in st.session_state:
+    st.session_state["table_expanded"] = False
 
 # 데이터 불러오기 (최초 1회 또는 예약 변경 시에만 작동)
 def load_data_from_db():
@@ -158,7 +161,26 @@ def user_page():
     with col1:
         st.subheader(f"📅 {selected_date} 현황표")
         # use_container_width를 False로 변경하면 표가 글자 크기만큼만 줄어들어 좌측에 정렬됩니다.
-        st.dataframe(schedule_data, use_container_width=False, hide_index=True, height=500)
+       with col1:
+        st.subheader(f"📅 {selected_date} 현황표")
+        
+        # 버튼 상태에 따라 표의 높이를 다르게 보여줍니다.
+        if st.session_state["table_expanded"]:
+            # 펼친 상태: 스크롤이 생기지 않도록 높이를 1300 픽셀로 넉넉하게 줍니다.
+            st.dataframe(schedule_data, use_container_width=True, hide_index=True, height=1300)
+            
+            # 닫기 버튼
+            if st.button("🔼 현황표 접기", use_container_width=True):
+                st.session_state["table_expanded"] = False
+                st.rerun()
+        else:
+            # 접힌 상태: 기본 높이 450 픽셀
+            st.dataframe(schedule_data, use_container_width=True, hide_index=True, height=450)
+            
+            # 펼치기 버튼
+            if st.button("🔽 전체 현황표 펼치기", use_container_width=True):
+                st.session_state["table_expanded"] = True
+                st.rerun()
         
     with col2:
         st.subheader("🕒 예약하기")
