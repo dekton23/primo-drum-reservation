@@ -170,7 +170,7 @@ def user_page():
                 st.rerun()
         else:
             # 가로 길이를 320으로 고정하여 우측 여백 확보
-            st.dataframe(schedule_data, use_container_width=False, width=320, hide_index=True, height=450)
+            st.dataframe(schedule_data, use_container_width=False, width=200, hide_index=True, height=450)
             if st.button("🔽 전체 현황표 펼치기", use_container_width=True):
                 st.session_state["table_expanded"] = True
                 st.rerun()
