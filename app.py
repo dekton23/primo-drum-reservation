@@ -134,12 +134,12 @@ def logout_button():
         st.rerun()
 
 def user_page():
-    # 파란색 안내 박스
     st.info("📢 **안내:** 매월 고정 연습실 사용 예약은 010-2989-0601로 문의 바랍니다.")
-    # 노란색 경고 박스 (예약 시간 제한 강조)
     st.warning("⚠️ **개인 당 1일 최대 연습실 예약 가능 시간은 2시간으로 한정됩니다.**")
     st.write(f"환영합니다, **{st.session_state['current_user']}**님!")
+    
     selected_date = st.date_input("예약하실 날짜를 선택하세요", datetime.date.today())
+    
     st.markdown("---")
     col1, col2 = st.columns([1.2, 1])
     
@@ -160,24 +160,15 @@ def user_page():
 
     with col1:
         st.subheader(f"📅 {selected_date} 현황표")
-        # use_container_width를 False로 변경하면 표가 글자 크기만큼만 줄어들어 좌측에 정렬됩니다.
-       with col1:
-        st.subheader(f"📅 {selected_date} 현황표")
         
         # 버튼 상태에 따라 표의 높이를 다르게 보여줍니다.
         if st.session_state["table_expanded"]:
-            # 펼친 상태: 스크롤이 생기지 않도록 높이를 1300 픽셀로 넉넉하게 줍니다.
             st.dataframe(schedule_data, use_container_width=True, hide_index=True, height=1300)
-            
-            # 닫기 버튼
             if st.button("🔼 현황표 접기", use_container_width=True):
                 st.session_state["table_expanded"] = False
                 st.rerun()
         else:
-            # 접힌 상태: 기본 높이 450 픽셀
             st.dataframe(schedule_data, use_container_width=True, hide_index=True, height=450)
-            
-            # 펼치기 버튼
             if st.button("🔽 전체 현황표 펼치기", use_container_width=True):
                 st.session_state["table_expanded"] = True
                 st.rerun()
@@ -202,7 +193,7 @@ def user_page():
             else:
                 res_id = str(uuid.uuid4())
                 ws_res.append_row([res_id, str(selected_date), start_time, end_time, st.session_state["current_user"]])
-                st.session_state["data_loaded"] = False # 강제 동기화 지시
+                st.session_state["data_loaded"] = False
                 st.success("예약이 성공적으로 완료되었습니다!")
                 st.rerun()
 
